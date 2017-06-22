@@ -34,7 +34,9 @@ class ImageSpider(object):
         self.MAX_COUNTS = self.SETTINGS.get(SETTINGS_MAX_COUNTS)
         if not self.MAX_COUNTS:
             self.MAX_COUNTS = 0
-        self.IMAGE_TYPE = self.SETTINGS.get(SETTINGS_IMAGE_TYPE)
+        self.IMAGE_TYPES = self.SETTINGS.get(SETTINGS_IMAGE_TYPE)
+        if not self.IMAGE_TYPES:
+            self.IMAGE_TYPES = ALL_IMAGE_TYPES
         self.BASE_DIR = self.SETTINGS.get(SETTINGS_BASE_DIR)
         if not self.BASE_DIR:
             plat = platform.platform().lower()
@@ -56,7 +58,7 @@ class ImageSpider(object):
         self.CONFIG_NAMES = ((SETTINGS_SITES, self.SITES),
                              (SETTINGS_INTERVAL, self.INTERVAL),
                              (SETTINGS_MAX_COUNTS, self.MAX_COUNTS),
-                             (SETTINGS_IMAGE_TYPE, self.IMAGE_TYPE),
+                             (SETTINGS_IMAGE_TYPE, self.IMAGE_TYPES),
                              (SETTINGS_BASE_DIR, self.BASE_DIR),
                              (SETTINGS_LOCAL_SITE, self.LOCAL_SITE),
                              (SETTINGS_CLEAR_CACHE, self.CLEAR_CACHE))
@@ -72,7 +74,6 @@ class ImageSpider(object):
         self.IMG_CACHE = str()
         self.MAIN_LOG = str()
         self.OP_LOG = str()
-        self.IMAGE_TYPES = None
 
     def settings(self, sites, headers=None, base_dir=None, max_counts=0,
                  interval=5, image_types=None, local_site=True, 
@@ -182,6 +183,12 @@ class ImageSpider(object):
                     image_url = image_url.replace(item, '')
             path = '/'.join(image_url.split('/')[1:-1])
             name = image_url.split('/')[-1]
+
+            if '?' in name:
+                res = re.findall('(^.*?\.(%s))' % '|'.join(self.IMAGE_TYPES),
+                                 name)
+                if res:
+                    name = res[0][0]
             abs_path = self.current_abs_dir
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
