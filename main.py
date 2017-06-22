@@ -211,7 +211,8 @@ class ImageSpider(object):
                 abs_path = self.current_abs_dir
             else:
                 # 非当前域
-                abs_path = os.path.join(self.BASE_DIR, domain)
+                _base_link = get_base_link(image_url, protocol=False)
+                abs_path = os.path.join(self.BASE_DIR, _base_link)
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
             if not os.path.exists(abs_path):
@@ -347,11 +348,12 @@ class ImageSpider(object):
             # initialize log and cache position
             self.current_protocol, self.current_domain = (get_protocol_domain
                                                           (link=site))
+            self.base_link = get_base_link(site)
+            self.base_link_without_protocol = get_base_link(site, protocol=False)
             self.current_abs_dir = os.path.join(self.BASE_DIR,
-                                                self.current_domain)
+                                                self.base_link_without_protocol)
             if not os.path.exists(self.current_abs_dir):
                 os.makedirs(self.current_abs_dir)
-            self.base_link = get_base_link(site, self.current_protocol)
             self.URL_CACHE = os.path.join(self.current_abs_dir, URL_CACHE)
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)

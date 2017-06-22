@@ -49,10 +49,13 @@ def add_protocol(sites, protocol):
     return processed_sites
 
 
-def get_base_link(site, protocol):
-    base_link = (r'%s://%s' % (protocol, site.strip(r'/'))
-                 if not site.startswith('http') else site)
-    return base_link
+def get_base_link(site, protocol=True):
+    """http://www.abc.com/hello.html的base_link为www.abc.com"""
+    pat = r'(http[s]?://[^/]+)/?' if protocol else r'http[s]?://([^/]+)/?'
+    res = re.findall(pat, site)
+    if not res:
+        raise GetBaseLinkFailed
+    return res[0]
 
 
 def get_protocol_domain(link):
