@@ -36,45 +36,58 @@ def try_iter(s):
     return res
 
 
-def add_protocol(sites):
+def add_protocol(sites, protocol):
     processed_sites = list()
     sites = try_iter(sites)
     for site in sites:
         assert isinstance(site, (str, unicode))
         site = site.strip(r'/')
         if not site.startswith('http'):
-            processed_sites.append(r'http://' + site)
+            processed_sites.append(r'%s://' % protocol + site)
         else:
             processed_sites.append(site)
     return processed_sites
 
 
-def get_domain(site_link):
-    assert isinstance(site_link, (str, unicode))
-    if site_link.startswith('http'):
-        for item in (r'http://', r'https://'):
-            site_link = site_link.replace(item, '')
+def get_base_link(site, protocol):
+    base_link = (r'%s://%s' % (protocol, site.strip(r'/'))
+                 if not site.startswith('http') else site)
+    return base_link
+
+
+def get_protocol_domain(link):
+    assert isinstance(link, (str, unicode))
+    if link.startswith('https'):
+        site_link = link.replace(r'https://', '')
+        protocol = 'https'
+    else:
+        site_link = link.replace(r'http://', '')
+        protocol = 'http'
+
     site_url = site_link.split('/')[0]
     if '.' not in site_url:
         raise GetBaseLinkFailed
 
     domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
-    return domain
+    return protocol, domain
 
 
 def get_images_from_url(url_content, base_link):
     """
     从URL内容中获取所有img标签的src属性
     :param url_content: 页面内容
-    :param base_link: 基础链接，比如http://www.baidu.com
+    :param base_link: 基本链接，如https://www.baidu.com
     :return: 图片绝对URL的列表
     """
     # TODO: lazyload
     res = re.findall(r'<img.*?src="(.*?)".*?>', url_content)
+    res = list(set(res))
     result = list()
     for item in res:
-        if item.startswith(r'/'):
-            result.append(base_link + item)
+        if item.startswith(r'//'):
+            result.append('%s%s' % ('http://', item.strip(r'//')))
+        elif item.startswith(r'/'):
+            result.append('%s/%s' % (base_link, item.strip(r'/')))
         elif item.startswith('http'):
             result.append(item)
         else:

@@ -49,3 +49,7 @@ class SettingsError(Exception):
     CONFIG = 'settings.conf: '
     interval_err = CONFIG + '[interval] must be larger than 0.'
     sites_err = CONFIG + '[sites] is necessary.'
+
+
+class ImageFilenameInvalid(Exception):
+    msg = 'The image filename is invalid.'

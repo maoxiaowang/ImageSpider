@@ -23,6 +23,17 @@ __all__ = ('start', 'settings')
 class ImageSpider(object):
 
     def __init__(self):
+        self.headers = DEFAULT_HEADER
+        self.cached_urls = list()
+        self.cached_images = list()
+        self.current_counts = 0
+        self.current_domain = str()
+        self.current_abs_dir = str()
+        self.current_protocol = 'http'
+        self.URL_CACHE = str()
+        self.IMG_CACHE = str()
+        self.MAIN_LOG = str()
+        self.OP_LOG = str()
 
         self.SETTINGS = ConfigParser().settings
         self.SITES = self.SETTINGS.get(SETTINGS_SITES)
@@ -30,7 +41,7 @@ class ImageSpider(object):
             raise SettingsError(SettingsError.sites_err)
         else:
             self.SITES = try_iter(self.SITES)
-            self.SITES = add_protocol(self.SITES)
+            self.SITES = add_protocol(self.SITES, self.current_protocol)
         self.INTERVAL = self.SETTINGS.get(SETTINGS_INTERVAL)
         if self.INTERVAL == 0:
             raise SettingsError(SettingsError.interval_err)
@@ -65,18 +76,6 @@ class ImageSpider(object):
                              (SETTINGS_BASE_DIR, self.BASE_DIR),
                              (SETTINGS_LOCAL_SITE, self.LOCAL_SITE),
                              (SETTINGS_CLEAR_CACHE, self.CLEAR_CACHE))
-        
-        self.headers = DEFAULT_HEADER
-        self.cached_urls = list()
-        self.cached_images = list()
-        self.current_counts = 0
-        self.current_domain = str()
-        self.current_abs_dir = str()
-
-        self.URL_CACHE = str()
-        self.IMG_CACHE = str()
-        self.MAIN_LOG = str()
-        self.OP_LOG = str()
 
     def settings(self, sites, headers=None, base_dir=None, max_counts=0,
                  interval=5, image_types=None, local_site=True, 
@@ -104,7 +103,7 @@ class ImageSpider(object):
         if base_dir:
             self.BASE_DIR = base_dir
         self.LOCAL_SITE = local_site
-        self.SITES = add_protocol(sites)
+        self.SITES = add_protocol(sites, self.current_protocol)
         self.MAX_COUNTS = max_counts
         self.INTERVAL = interval
         self.CLEAR_CACHE = clear_cache
@@ -156,21 +155,40 @@ class ImageSpider(object):
         :param url: 下载图片的页面
         :return: list
         """
+
+        def __add_image_cache(iu):
+            self.cached_images.append(iu)
+            LOG.cache(iu, self.IMG_CACHE)
+
         url_content = self.read_html(url)
-        image_urls = get_images_from_url(url_content, self.current_domain)
+        image_urls = get_images_from_url(url_content, self.base_link)
+
         for img_url in image_urls:
-            # TODO: 转为绝对路径
-            path, name = self._get_image_path(img_url)
-            self._save_image(img_url, path, name)
+            if img_url in self.cached_images:
+                continue
+            try:
+                path, name = self._get_image_path(img_url)
+            except ImageFilenameInvalid:
+                _ = '%s 获取图片文件名失败' % img_url
+                __add_image_cache(img_url)
+                LOG.write(_, self.MAIN_LOG)
+                mprint(_)
+                continue
+            try:
+                self._save_image(img_url, path, name)
+            except SaveImageFailed:
+                _ = '%s 保存图片出错' % img_url
+                __add_image_cache(img_url)
+                LOG.write(_, self.MAIN_LOG)
+                mprint(_)
+                continue
             # cache save
-            if img_url not in self.cached_images:
-                self.cached_images.append(img_url)
-                LOG.cache(img_url, self.IMG_CACHE)
-                # log
-                log = '%s --> %s' % (img_url, path)
-                mprint(log)
-                LOG.write(log, self.MAIN_LOG)
-                time.sleep(self.INTERVAL)
+            __add_image_cache(img_url)
+            # log
+            log = '%s --> %s' % (img_url, path)
+            mprint(log)
+            LOG.write(log, self.MAIN_LOG)
+            time.sleep(self.INTERVAL)
 
     def _get_image_path(self, image_url):
         """
@@ -180,54 +198,60 @@ class ImageSpider(object):
         """
         # pat = r'(http[s]?://.*\/(.*?\.(jpg|jpeg|gif|png|bmp)))'
         # # res = re.findall(pat, image_url.lower())
+        bare_url = image_url
         try:
             if image_url.startswith('http'):
                 for item in (r'http://', r'https://'):
-                    image_url = image_url.replace(item, '')
-            path = '/'.join(image_url.split('/')[1:-1])
-            name = image_url.split('/')[-1]
+                    bare_url = bare_url.replace(item, '')
+            path = '/'.join(bare_url.split('/')[1:-1])
+            name = bare_url.split('/')[-1]
 
-            if '?' in name:
-                res = re.findall('(^.*?\.(%s))' % '|'.join(self.IMAGE_TYPES),
-                                 name)
-                if res:
-                    name = res[0][0]
-            abs_path = self.current_abs_dir
+            _, domain = get_protocol_domain(image_url)
+            if domain == self.current_domain:
+                abs_path = self.current_abs_dir
+            else:
+                # 非当前域
+                abs_path = os.path.join(self.BASE_DIR, domain)
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
+            if not os.path.exists(abs_path):
+                os.makedirs(abs_path)
+
+            if '?' in name and '=' in name:
+                if self.IMAGE_TYPES:
+                    _pat = r'^(.*?\.(%s))\?\w+\=.*$' % '|'.join(self.IMAGE_TYPES)
+                    res = re.findall(_pat, name)
+                    if res:
+                        name = res[0][0]
+                else:
+                    res = re.findall(r'^(.*?)\?\w+\=.*$', name)
+                    if res:
+                        name = res[0]
+                if not res:
+                    raise ImageFilenameInvalid
+
         except Exception:
             raise
         return abs_path, name
-        # if res:
-        #     path, name = res[0][0], res[0][1]
-        #     abs_path = self.current_abs_dir
-        #     for i, p in enumerate(path.split('/')):
-        #         abs_path = os.path.join(abs_path, p)
-        #     return abs_path, name
-        # else:
-        #     # not a image url
-        #     raise InvalidImageFileName
-        #     pass
 
     def _save_image(self, img_url, img_path, img_name):
         """从目标URL保存图片到本地"""
         if img_url not in self.cached_images:
-            u_obj = urllib.urlopen(img_url)
-            img_data = u_obj.read()
             try:
+                u_obj = urllib.urlopen(img_url)
+                img_data = u_obj.read()
+
                 if not os.path.exists(img_path):
                     os.makedirs(img_path)
                 f = open(os.path.join(img_path, img_name), 'wb')
                 f.write(img_data)
                 f.close()
-            except IOError as e:
-                raise e
             except Exception:
                 raise SaveImageFailed
-
-            self.current_counts += 1
-            self._show_image_counts()
-            self._check_exit()
+            else:
+                self.current_counts += 1
+                self._show_image_counts()
+                self._check_exit()
 
     def _show_image_counts(self):
         if self.current_counts % 10 == 0:
@@ -241,8 +265,6 @@ class ImageSpider(object):
         """移除非本站链接"""
         # result = list()
         for link in links:
-            # if self.current_domain in link:
-            #     result.append(link)
             if self.current_domain not in link:
                 links.remove(link)
         return links
@@ -323,11 +345,13 @@ class ImageSpider(object):
     def _initialize(self, site):
         try:
             # initialize log and cache position
-            self.current_domain = get_domain(site_link=site)
+            self.current_protocol, self.current_domain = (get_protocol_domain
+                                                          (link=site))
             self.current_abs_dir = os.path.join(self.BASE_DIR,
                                                 self.current_domain)
             if not os.path.exists(self.current_abs_dir):
                 os.makedirs(self.current_abs_dir)
+            self.base_link = get_base_link(site, self.current_protocol)
             self.URL_CACHE = os.path.join(self.current_abs_dir, URL_CACHE)
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)
