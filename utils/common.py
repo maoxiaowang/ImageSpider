@@ -77,7 +77,7 @@ def get_protocol_domain(link):
 
     site_url = site_link.split('/')[0]
     if '.' not in site_url:
-        raise GetBaseLinkFailed
+        raise InvalidDomain(InvalidDomain.msg)
 
     domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
     return protocol, domain

@@ -29,8 +29,12 @@ WARN_EXCEPTIONS = (InvalidImageFileName,
                    ClearCacheFailed,
                    LoadCacheFailed,
                    SaveImageFailed,
-                   TranslateToAbsoluteURLFailed)
+                   TranslateToAbsoluteURLFailed,
+                   InvalidDomain,
+                   )
 FATAL_EXCEPTIONS = (UnknownPythonVersion,
                     UnsupportedPythonVersion,
                     GetBaseLinkFailed,
-                    InitializeFailed)
+                    InitializeFailed,
+                    SettingsError,
+                    LoadSettingsFileFailed)

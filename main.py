@@ -168,7 +168,7 @@ class ImageSpider(object):
                 continue
             try:
                 path, name = self._get_image_path(img_url)
-            except ImageFilenameInvalid:
+            except InvalidImageFileName:
                 _ = '%s 获取图片文件名失败' % img_url
                 __add_image_cache(img_url)
                 LOG.write(_, self.MAIN_LOG)

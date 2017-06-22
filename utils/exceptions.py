@@ -51,5 +51,5 @@ class SettingsError(Exception):
     sites_err = CONFIG + '[sites] is necessary.'
 
 
-class ImageFilenameInvalid(Exception):
-    msg = 'The image filename is invalid.'
+class InvalidDomain(Exception):
+    msg = 'The domain is invalid.'
