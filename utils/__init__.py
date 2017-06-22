@@ -2,4 +2,4 @@
 
 from common import *
 from constance import *
-from ImageSpider.utils.exceptions import *
+from utils.exceptions import *

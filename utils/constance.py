@@ -1,10 +1,20 @@
 # coding=utf-8
-from ImageSpider.utils.exceptions import *
+from utils.exceptions import *
 
 MAIN_LOG = 'main.log'
 URL_CACHE = 'url_cache'
 IMG_CACHE = 'img_cache'
 OP_LOG = 'op.log'
+SETTINGS_CONF = 'settings.conf'
+
+SETTINGS_SITES = 'sites'
+SETTINGS_INTERVAL = 'interval'
+SETTINGS_MAX_COUNTS = 'max_counts'
+SETTINGS_IMAGE_TYPE = 'image_types'
+SETTINGS_BASE_DIR = 'base_dir'
+SETTINGS_LOCAL_SITE = 'local_site'
+SETTINGS_CLEAR_CACHE = 'clear_cache'
+
 
 DEFAULT_HEADER = {
             'Connection': 'Keep-Alive',

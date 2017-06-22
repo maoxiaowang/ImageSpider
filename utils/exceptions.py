@@ -39,3 +39,13 @@ class SaveImageFailed(Exception):
 
 class TranslateToAbsoluteURLFailed(Exception):
     msg = 'Translating relative URL to absolute URL failed.'
+
+
+class LoadSettingsFileFailed(Exception):
+    msg = 'load settings.conf failed, please check if it exists.'
+
+
+class SettingsError(Exception):
+    CONFIG = '[settings.conf] '
+    interval_err = CONFIG + 'interval must be larger than 0.'
+    sites_err = CONFIG + 'sites is necessary.'

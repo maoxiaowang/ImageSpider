@@ -2,7 +2,7 @@
 import re
 import sys
 import time
-from ImageSpider.utils.exceptions import *
+from constance import *
 
 
 def get_py_version():
@@ -23,8 +23,11 @@ def mprint(string, *args):
 
 
 def try_iter(s):
-    # assert (isinstance(s, (str, unicode, list, tuple)),
-    #         'str, list or tuple is needed')
+    """
+    turn value to iterable
+    :param s: str, tuple, list
+    :return: list
+    """
     res = list()
     if type(s) in (str, unicode):
         res = [s]
@@ -52,7 +55,7 @@ def get_domain(site_link):
         for item in (r'http://', r'https://'):
             site_link = site_link.replace(item, '')
     site_url = site_link.split('/')[0]
-    if not '.' in site_url:
+    if '.' not in site_url:
         raise GetBaseLinkFailed
 
     domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
@@ -134,3 +137,49 @@ class Log(object):
                 f.write('')
         except Exception:
             raise ClearCacheFailed
+
+
+class ConfigParser(object):
+
+    def __init__(self):
+        self._settings = dict()
+        try:
+            with open(SETTINGS_CONF) as f:
+                lines = f.readlines()
+                for line in lines:
+                    if line and not line.startswith('#') and '=' in line:
+                        name, value = line.split('=')
+                        name, value = name.strip(), value.strip()
+                        self._settings[name] = self._trans(value)
+        except Exception:
+            raise LoadSettingsFileFailed
+
+    @staticmethod
+    def _trans_single(v):
+        if v.isdigit():
+            if '.' in v:
+                v = float(v)
+            else:
+                v = int(v)
+        elif v.lower() == 'true':
+            v = True
+        elif v.lower() == 'false':
+            v = False
+        return v
+
+    def _trans(self, value):
+        if ',' in value:
+            # for multiple value, return a list
+            value = [i.strip() for i in value.split(',') if i]
+            return [self._trans_single(i) for i in value]
+        else:
+            return self._trans_single(value)
+
+    def get(self, name):
+        # 返回value
+        return self._trans(self._settings.get(name))
+
+    @property
+    def settings(self):
+        # 读取所有配置项，并返回对应value
+        return self._settings
