@@ -55,7 +55,15 @@ def get_base_link(site, protocol=True):
     res = re.findall(pat, site)
     if not res:
         raise GetBaseLinkFailed
-    return res[0]
+    # 有端口的情况
+    _base_link = res[0]
+    try:
+        if ':' in _base_link:
+            return _base_link.split(':')[0]
+        else:
+            return _base_link
+    except Exception:
+        raise _base_link
 
 
 def get_protocol_domain(link):
