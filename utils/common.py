@@ -96,7 +96,9 @@ def get_images_from_url(url_content, base_link):
 
 
 def replace_html_symbol(content):
-    return content.replace('&#47;', r'/')
+    for item in ('&#x2F;', '&#47;', '&#x2f;'):
+        content = content.replace(item, r'/')
+    return content
 
 
 class Log(object):

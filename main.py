@@ -118,7 +118,7 @@ class ImageSpider(object):
         # assert (isinstance(interval, int) and interval > 0,
         #         'a positive integer is needed')
 
-    def read_html(self, des, times=10):
+    def read_html(self, des, times=3):
         assert type(times) == int and times > 0, ('parameter times must be a '
                                                   'integer larger than 0')
         timer = 1
