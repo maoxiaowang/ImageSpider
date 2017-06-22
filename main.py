@@ -25,9 +25,12 @@ class ImageSpider(object):
     def __init__(self):
 
         self.SETTINGS = ConfigParser().settings
-        self.SITES = try_iter(self.SETTINGS.get(SETTINGS_SITES))
+        self.SITES = self.SETTINGS.get(SETTINGS_SITES)
         if not self.SITES:
             raise SettingsError(SettingsError.sites_err)
+        else:
+            self.SITES = try_iter(self.SITES)
+            self.SITES = add_protocol(self.SITES)
         self.INTERVAL = self.SETTINGS.get(SETTINGS_INTERVAL)
         if self.INTERVAL == 0:
             raise SettingsError(SettingsError.interval_err)
