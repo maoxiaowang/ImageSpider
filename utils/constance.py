@@ -15,6 +15,7 @@ SETTINGS_BASE_DIR = 'base_dir'
 SETTINGS_LOCAL_SITE = 'local_site'
 SETTINGS_CLEAR_CACHE = 'clear_cache'
 
+ALL_IMAGE_TYPES = ['jpg', 'jpeg', 'gif', 'png', 'bmp']
 
 DEFAULT_HEADER = {
             'Connection': 'Keep-Alive',
