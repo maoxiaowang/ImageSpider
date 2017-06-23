@@ -183,7 +183,7 @@ class ConfigParser(object):
 
     @staticmethod
     def _trans_single(v):
-        if v.isdigit():
+        if v.replace('.', '').isdigit():
             if '.' in v:
                 v = float(v)
             else:
