@@ -17,6 +17,11 @@ SETTINGS_CLEAR_CACHE = 'clear_cache'
 
 COMMON_IMAGE_TYPES = ['jpg', 'jpeg', 'gif', 'png', 'bmp']
 
+TIP_SETTINGS = '----------SETTINGS----------'
+TIP_BLANK = '----------------------------'
+TIP_START = '------------START-----------'
+TIP_END = '-------------END------------'
+
 DEFAULT_HEADER = {
             'Connection': 'Keep-Alive',
             'Accept': 'text/html, application/xhtml+xml, */*',

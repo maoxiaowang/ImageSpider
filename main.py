@@ -53,9 +53,9 @@ class ImageSpider(object):
         if not self.BASE_DIR:
             plat = platform.platform().lower()
             if 'windows' in plat:
-                self.BASE_DIR = 'C:\\'
+                self.BASE_DIR = r'C:\\'
             elif 'linux' in plat:
-                self.BASE_DIR = '\\home'
+                self.BASE_DIR = r'/home'
             else:
                 # unknown os
                 self.BASE_DIR = str(input('未知操作系统，'
@@ -379,11 +379,11 @@ class ImageSpider(object):
                 pass
 
     def _show_config(self):
-        mprint('----------SETTINGS----------')
+        mprint(TIP_SETTINGS)
         for name, value in self.CONFIG_NAMES:
 
             mprint('%-15s = %s' % (name, value))
-        mprint('----------------------------')
+        mprint(TIP_BLANK)
 
     def start(self):
         # show config info
@@ -395,7 +395,7 @@ class ImageSpider(object):
             condition = self.current_counts <= self.MAX_COUNTS
         if not self.SITES:
             raise ParameterNotGiven(ParameterNotGiven.msg)
-        mprint('------------START-----------')
+        mprint(TIP_START)
         while condition:
 
             for site in self.SITES:
@@ -416,4 +416,4 @@ class ImageSpider(object):
                         raise
                     else:
                         raise
-        mprint('-------------END------------')
+        mprint(TIP_END)
