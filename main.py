@@ -208,7 +208,7 @@ class ImageSpider(object):
             if domain == self.current_domain:
                 abs_path = self.current_abs_dir
             else:
-                # 非当前域
+                # base_link不同时
                 _base_link = get_base_link(image_url, protocol=False)
                 abs_path = os.path.join(self.BASE_DIR, _base_link)
             for i, p in enumerate(path.split('/')):

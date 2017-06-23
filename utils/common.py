@@ -67,6 +67,7 @@ def get_base_link(site, protocol=True):
 
 
 def get_protocol_domain(link):
+    """包含子域名部分，比如image.baidu.com"""
     assert isinstance(link, (str, unicode))
     if link.startswith('https'):
         site_link = link.replace(r'https://', '')
@@ -75,11 +76,11 @@ def get_protocol_domain(link):
         site_link = link.replace(r'http://', '')
         protocol = 'http'
 
-    site_url = site_link.split('/')[0]
-    if '.' not in site_url:
+    domain = site_link.split('/')[0]
+    if '.' not in domain:
         raise InvalidDomain(InvalidDomain.msg)
 
-    domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
+    # domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
     return protocol, domain
 
 
