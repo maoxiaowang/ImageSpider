@@ -55,10 +55,10 @@ def get_base_link(site, protocol=True):
     res = re.findall(pat, site)
     if not res:
         raise GetBaseLinkFailed
-    # 有端口的情况
     _base_link = res[0]
     try:
-        if ':' in _base_link:
+        if not protocol and ':' in _base_link:
+            # 有端口的情况
             return _base_link.split(':')[0]
         else:
             return _base_link
@@ -85,7 +85,7 @@ def get_protocol_domain(link):
 
 def get_images_from_url(url_content, base_link):
     """
-    从URL内容中获取所有img标签的src属性
+    从URL内容中获取所有img标签的src属性，并返回src列表
     :param url_content: 页面内容
     :param base_link: 基本链接，如https://www.baidu.com
     :return: 图片绝对URL的列表
