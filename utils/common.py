@@ -122,12 +122,12 @@ class Log(object):
         self.NEW_LINE = '\n'
 
     @property
-    def __date_str(self):
+    def date_str(self):
         return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
     def write(self, content, log_file_path):
         with open(log_file_path, mode='a+') as f:
-            f.write('%s %s%s' % (self.__date_str, content, self.NEW_LINE))
+            f.write('%s %s%s' % (self.date_str, content, self.NEW_LINE))
 
     def cache(self, content, cache_file_path):
         cached = False

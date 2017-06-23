@@ -55,11 +55,15 @@ class ImageSpider(object):
             _ = self.MAX_LENGTH
             assert isinstance(self.MAX_LENGTH, (int, float))
             self.MAX_LENGTH = _ * 1024
+        else:
+            self.MAX_LENGTH = 0
+        self.MIN_LENGTH = self.SETTINGS.get(SETTINGS_MIN_LENGTH)
         if self.MIN_LENGTH:
             _ = self.MIN_LENGTH
             assert isinstance(self.MIN_LENGTH, (int, float))
             self.MIN_LENGTH = _ * 1024
-        self.MIN_LENGTH = self.SETTINGS.get(SETTINGS_MIN_LENGTH)
+        else:
+            self.MIN_LENGTH = 0
         self.IMAGE_TYPES = self.SETTINGS.get(SETTINGS_IMAGE_TYPE)
         self.BASE_DIR = self.SETTINGS.get(SETTINGS_BASE_DIR)
         if not self.BASE_DIR:
@@ -99,7 +103,7 @@ class ImageSpider(object):
         :param interval: 抓取图片间隔
         :param image_types: 图片类型，后缀名
         :param local_site: 如果为True只爬取本站（包括子站），否则会爬取任何看到的链接
-        :param clear_cache: 如果为True，会清空日志，忽略已爬取的记录，重新下载已下载过的图片
+        :param clear_cache: 如果为True，会清空日志，忽略已有记录，重新下载已下载过的图片
         :return:
         """
         if headers:
@@ -120,34 +124,25 @@ class ImageSpider(object):
         if image_types:
             self.IMAGE_TYPES = image_types
 
-        # if maximum_counts:
-        #     assert (isinstance(maximum_counts, int) and maximum_counts > 0,
-        #             'a positive integer is needed')
-        #     self.MAX_COUNTS = maximum_counts
-        # self.INTERVAL = interval
-        # assert (isinstance(interval, int) and interval > 0,
-        #         'a positive integer is needed')
-
     def read_html(self, des, times=3):
         assert type(times) == int and times > 0, ('parameter times must be a '
                                                   'integer larger than 0')
         timer = 1
         while True:
             try:
-                mprint('reading %s ' % des)
                 request = urllib2.Request(des.strip(), headers=self.headers)
                 response = urllib2.urlopen(request)
                 content = response.read()
                 response.close()
                 return content
             except urllib2.HTTPError as e:
-                _ = '打开链接出错，错误码：%s' %e.code
+                _ = '%s 打开链接出错：%s' % (LOG.date_str, e.code)
                 mprint(_)
                 LOG.write(_, self.OP_LOG)
                 time.sleep(5)
                 timer += 1
             except urllib2.URLError as e:
-                _ = '目标服务器连接出错，错误码：%s' %e.reason
+                _ = '%s 连接服务器出错：%s' % (LOG.date_str, e.reason)
                 mprint(_)
                 LOG.write(_, self.OP_LOG)
                 time.sleep(5)
@@ -155,7 +150,7 @@ class ImageSpider(object):
             except Exception:
                 raise
             if timer >= times:
-                _ = '读取链接失败已经%d次，%s' % (timer, des)
+                _ = '%s 读取链接失败已经%d次，%s' % (LOG.date_str, timer, des)
                 mprint(_)
                 LOG.write(_, self.OP_LOG)
                 return ''
@@ -180,15 +175,15 @@ class ImageSpider(object):
             try:
                 path, name = self._get_image_path(img_url)
             except InvalidImageFileName:
-                _ = '%s 获取图片文件名失败' % img_url
+                _ = '获取图片文件名失败: %s' % img_url
                 __add_image_cache(img_url)
                 LOG.write(_, self.MAIN_LOG)
                 mprint(_)
                 continue
             try:
                 self._save_image(img_url, path, name)
-            except SaveImageFailed:
-                _ = '%s 保存图片出错' % img_url
+            except SaveImageFailed as e:
+                _ = '保存图片出错: %s %s' % (img_url, str(e))
                 __add_image_cache(img_url)
                 LOG.write(_, self.MAIN_LOG)
                 mprint(_)
@@ -196,7 +191,7 @@ class ImageSpider(object):
             # cache save
             __add_image_cache(img_url)
             # log
-            log = '%s --> %s' % (img_url, path)
+            log = '%s %s --> %s' % (LOG.date_str, img_url, path)
             mprint(log)
             LOG.write(log, self.MAIN_LOG)
             time.sleep(self.INTERVAL)
@@ -219,29 +214,24 @@ class ImageSpider(object):
 
             _base_link = get_base_link(image_url)
 
-            # if domain == self.current_domain:
-            #     abs_path = self.current_abs_dir
-            # else:
-            #     # base_link不同时
-            #     abs_path = os.path.join(self.BASE_DIR, _base_link)
             if not _base_link == self.base_link:
                 abs_path = os.path.join(self.BASE_DIR,
                                         get_base_link(image_url, protocol=False))
                 if not os.path.exists(abs_path):
                     os.makedirs(abs_path)
             else:
-                 abs_path = self.current_abs_dir
+                abs_path = self.current_abs_dir
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
             if '?' in name and '=' in name:
                 # 带参数图片地址处理
                 if self.IMAGE_TYPES:
                     _pat = r'^(.*?\.(%s))\?\w+\=.*$' % '|'.join(self.IMAGE_TYPES)
-                    res = re.findall(_pat, name)
+                    res = re.findall(_pat, name, re.I)
                     if res:
                         name = res[0][0]
                 else:
-                    res = re.findall(r'^(.*?)\?\w+\=.*$', name)
+                    res = re.findall(r'^(.*?)\?\w+=.*$', name)
                     if res:
                         name = res[0]
                 if not res:
@@ -254,38 +244,35 @@ class ImageSpider(object):
     def _save_image(self, img_url, img_path, img_name):
         """从目标URL保存图片到本地"""
         if img_url not in self.cached_images:
-            try:
-                # u_obj = urllib.urlopen(img_url)
-                # img_data = u_obj.read()
-                #
-                # if not os.path.exists(img_path):
-                #     os.makedirs(img_path)
-                # f = open(os.path.join(img_path, img_name), 'wb')
-                # f.write(img_data)
-                # f.close()
-                connection = urllib2.build_opener().open(urllib2.Request(img_url))
+            _timer = 0
+            while True:
                 try:
+                    connection = urllib2.build_opener().open(urllib2.Request(img_url))
                     _len = int(connection.headers.dict['content-length'])
                     if self.MAX_LENGTH and _len > self.MAX_LENGTH:
                         return
                     if self.MIN_LENGTH and _len < self.MIN_LENGTH:
                         return
+                    if not os.path.exists(img_path):
+                        os.makedirs(img_path)
+                    urllib.urlretrieve(img_url,
+                                       os.path.join(img_path, img_name), None)
                 except Exception:
-                    pass
-                if not os.path.exists(img_path):
-                    os.makedirs(img_path)
-                urllib.urlretrieve(img_url, os.path.join(img_path, img_name), None)
-            except Exception as e:
-                mprint(str(e))
-                raise SaveImageFailed
-            else:
+                    _timer += 1
+                    _ = '%s 保存图片失败%d次 %s' % (LOG.date_str, _timer , img_url)
+                    mprint(_)
+                    LOG.write(_, self.OP_LOG)
+                    if _timer >= 3:
+                        break
+
                 self.current_counts += 1
                 self._show_image_counts()
                 self._check_max_counts()
+                break
 
     def _show_image_counts(self):
         if self.current_counts % 10 == 0:
-            mprint('已保存%d张图片' % self.current_counts)
+            mprint('%s 已保存%d张图片' % (LOG.date_str, self.current_counts))
 
     def _check_max_counts(self):
         if self.MAX_COUNTS and self.current_counts >= self.MAX_COUNTS:
@@ -303,12 +290,15 @@ class ImageSpider(object):
         """把任意URL转为绝对路径"""
         if not url.startswith('http'):
             if url.startswith(r'//'):
-                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url.lstrip(r'//'))
+                url = '%s://%s/%s' % (self.current_protocol,
+                                      self.current_base_link, url.lstrip(r'//'))
             elif url.startswith(r'/'):
-                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url.lstrip(r'/'))
+                url = '%s://%s/%s' % (self.current_protocol,
+                                      self.current_base_link, url.lstrip(r'/'))
             else:
                 # 没有/的相对URL
-                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url)
+                url = '%s://%s/%s' % (self.current_protocol,
+                                      self.current_base_link, url)
         return url
 
     def get_links(self, url):
@@ -351,13 +341,13 @@ class ImageSpider(object):
         for link in links:
             # 首先更新当前页面的base_url
             self.current_base_link = get_base_link(link, protocol=False)
+            mprint('%s %s loading...' % (LOG.date_str, link))
 
             # first, download images on this link one by one
             self.download_images(link)
 
             # 缓存地址
             if link not in self.cached_urls:
-                mprint(link)
                 self.cached_urls.append(link)
                 LOG.write(link, self.URL_CACHE)
             else:
@@ -368,26 +358,6 @@ class ImageSpider(object):
 
         # 拿到页面所有链接，递归
         self._process_links(to_do_links)
-
-    def _process_site(self, site):
-        """
-        页面处理
-        :param site: settings指定的站点URL
-        :return:
-        """
-
-        # get down images of the the page first
-        self.download_images(site)
-
-        # get urls on this page
-        base_urls = self.get_links(site)
-        
-        # LOG
-        LOG.write('Start getting images from %s' % site, 
-                  os.path.join(self.current_abs_dir, self.MAIN_LOG))
-
-        # process urls
-        self._process_links(base_urls)
 
     def _initialize(self, site):
         try:
@@ -446,7 +416,8 @@ class ImageSpider(object):
                 try:
                     self._initialize(site)
                     # get images from it and all it's sub urls
-                    self._process_site(site)
+                    self._process_links([site])
+
                 except KeyboardInterrupt:
                     mprint('本次共保存%d张图片, bye~' % self.current_counts)
                     condition = False
