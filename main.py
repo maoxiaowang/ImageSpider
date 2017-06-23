@@ -28,6 +28,7 @@ class ImageSpider(object):
         self.cached_images = list()
         self.current_counts = 0
         self.current_domain = str()
+        # current_base_link为当前所在页面，如查找当前页面所有链接，或者下载所有图片时
         self.current_base_link = str()
         self.current_abs_dir = str()
         self.current_protocol = 'http'
@@ -47,8 +48,18 @@ class ImageSpider(object):
         if self.INTERVAL == 0:
             raise SettingsError(SettingsError.interval_err)
         self.MAX_COUNTS = self.SETTINGS.get(SETTINGS_MAX_COUNTS)
-        if not self.MAX_COUNTS:
-            self.MAX_COUNTS = 0
+        if self.MAX_COUNTS:
+            assert isinstance(self.MAX_COUNTS, int)
+        self.MAX_LENGTH = self.SETTINGS.get(SETTINGS_MAX_LENGTH)
+        if self.MAX_LENGTH:
+            _ = self.MAX_LENGTH
+            assert isinstance(self.MAX_LENGTH, (int, float))
+            self.MAX_LENGTH = _ * 1024
+        if self.MIN_LENGTH:
+            _ = self.MIN_LENGTH
+            assert isinstance(self.MIN_LENGTH, (int, float))
+            self.MIN_LENGTH = _ * 1024
+        self.MIN_LENGTH = self.SETTINGS.get(SETTINGS_MIN_LENGTH)
         self.IMAGE_TYPES = self.SETTINGS.get(SETTINGS_IMAGE_TYPE)
         self.BASE_DIR = self.SETTINGS.get(SETTINGS_BASE_DIR)
         if not self.BASE_DIR:
@@ -123,6 +134,7 @@ class ImageSpider(object):
         timer = 1
         while True:
             try:
+                mprint('reading %s ' % des)
                 request = urllib2.Request(des.strip(), headers=self.headers)
                 response = urllib2.urlopen(request)
                 content = response.read()
@@ -243,26 +255,39 @@ class ImageSpider(object):
         """从目标URL保存图片到本地"""
         if img_url not in self.cached_images:
             try:
-                u_obj = urllib.urlopen(img_url)
-                img_data = u_obj.read()
-
+                # u_obj = urllib.urlopen(img_url)
+                # img_data = u_obj.read()
+                #
+                # if not os.path.exists(img_path):
+                #     os.makedirs(img_path)
+                # f = open(os.path.join(img_path, img_name), 'wb')
+                # f.write(img_data)
+                # f.close()
+                connection = urllib2.build_opener().open(urllib2.Request(img_url))
+                try:
+                    _len = int(connection.headers.dict['content-length'])
+                    if self.MAX_LENGTH and _len > self.MAX_LENGTH:
+                        return
+                    if self.MIN_LENGTH and _len < self.MIN_LENGTH:
+                        return
+                except Exception:
+                    pass
                 if not os.path.exists(img_path):
                     os.makedirs(img_path)
-                f = open(os.path.join(img_path, img_name), 'wb')
-                f.write(img_data)
-                f.close()
-            except Exception:
+                urllib.urlretrieve(img_url, os.path.join(img_path, img_name), None)
+            except Exception as e:
+                mprint(str(e))
                 raise SaveImageFailed
             else:
                 self.current_counts += 1
                 self._show_image_counts()
-                self._check_exit()
+                self._check_max_counts()
 
     def _show_image_counts(self):
         if self.current_counts % 10 == 0:
             mprint('已保存%d张图片' % self.current_counts)
 
-    def _check_exit(self):
+    def _check_max_counts(self):
         if self.MAX_COUNTS and self.current_counts >= self.MAX_COUNTS:
             exit('已抓够%d张图片，自动退出。' % self.current_counts)
 
@@ -278,51 +303,55 @@ class ImageSpider(object):
         """把任意URL转为绝对路径"""
         if not url.startswith('http'):
             if url.startswith(r'//'):
-                url = '%s://%s' % (self.current_protocol, url.lstrip(r'//'))
-            elif url.startswith('r/'):
-                url = '%s://%s' % (self.current_protocol, url.lstrip(r'/'))
+                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url.lstrip(r'//'))
+            elif url.startswith(r'/'):
+                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url.lstrip(r'/'))
             else:
                 # 没有/的相对URL
-                url = '%s://%s' % (self.current_protocol, url)
+                url = '%s://%s/%s' % (self.current_protocol, self.current_base_link, url)
         return url
 
     def get_links(self, url):
         """
-        拿到一个URL中所有<a>标签的href（未访问过的）
+        拿到一个URL中所有<a>标签的href（未访问过的）并返回它们的绝对URL
         :param url:
         :return: list
         """
         content = replace_html_symbol(self.read_html(url))
-        links = re.findall(r'<a.*?href="(http.*?)".*?>', content, re.S)
+        links = re.findall(r'<a.*?href="(.*?)".*?>', content, re.S)
         links = list(set(links))
+
+        # 首先更新当前页面的base_url
+        self.current_base_link = get_base_link(url, protocol=False)
         # filter visited links
+        new_links = list()
         for link in links:
-            # 首先移除该链接（可能为相对路径，或非同域名）
-            links.remove(link)
+            _abs_url = self._to_abs_url(link)
             try:
-                _, _domain = get_protocol_domain(link)
+                _, _domain = get_protocol_domain(_abs_url)
             except InvalidDomain:
                 continue
             if self.LOCAL_SITE and not self.current_domain == _domain:
                 # 非同域名且local_site为True，不进行任何处理
                 continue
-            if link not in self.cached_urls:
-                # 转为绝对路径，添加cache
-                links.append(self._to_abs_url(link))
-        #
-        # if self.LOCAL_SITE:
-        #     # filter non local links
-        #     links = self._remove_non_local_site_links(links)
 
-        return links
+            if link not in self.cached_urls:
+                # 加入处理后的绝对链接
+                new_links.append(_abs_url)
+
+        return new_links
 
     def _process_links(self, links):
         """
         链接处理
-        :param links:
+        :param links: abs links
         :return:
         """
+        to_do_links = list()
         for link in links:
+            # 首先更新当前页面的base_url
+            self.current_base_link = get_base_link(link, protocol=False)
+
             # first, download images on this link one by one
             self.download_images(link)
 
@@ -335,9 +364,10 @@ class ImageSpider(object):
                 # ignore cached links
                 continue
 
-            # TODO: 拿到页面所有链接，递归
-            do_to_links = self.get_links(link)
-            self._process_links(do_to_links)
+            to_do_links.extend(self.get_links(link))
+
+        # 拿到页面所有链接，递归
+        self._process_links(to_do_links)
 
     def _process_site(self, site):
         """

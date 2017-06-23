@@ -67,7 +67,11 @@ def get_base_link(site, protocol=True):
 
 
 def get_protocol_domain(link):
-    """不包含子域名部分"""
+    """
+    link必须为绝对URL，比如http://www.baidu.com/...这种形式
+    :param link:
+    :return:
+    """
     assert isinstance(link, (str, unicode))
     if link.startswith('https'):
         site_link = link.replace(r'https://', '')
