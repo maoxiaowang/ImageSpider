@@ -205,7 +205,6 @@ class ImageSpider(object):
             path = '/'.join(bare_url.split('/')[1:-1])
             name = bare_url.split('/')[-1]
 
-            # _, domain = get_protocol_domain(image_url)
             _base_link = get_base_link(image_url)
 
             # if domain == self.current_domain:
@@ -300,7 +299,10 @@ class ImageSpider(object):
         for link in links:
             # 首先移除该链接（可能为相对路径，或非同域名）
             links.remove(link)
-            _, _domain = get_protocol_domain(link)
+            try:
+                _, _domain = get_protocol_domain(link)
+            except InvalidDomain:
+                continue
             if self.LOCAL_SITE and not self.current_domain == _domain:
                 # 非同域名且local_site为True，不进行任何处理
                 continue
