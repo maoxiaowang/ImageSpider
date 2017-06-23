@@ -28,6 +28,7 @@ class ImageSpider(object):
         self.cached_images = list()
         self.current_counts = 0
         self.current_domain = str()
+        self.current_base_link = str()
         self.current_abs_dir = str()
         self.current_protocol = 'http'
         self.URL_CACHE = str()
@@ -204,18 +205,23 @@ class ImageSpider(object):
             path = '/'.join(bare_url.split('/')[1:-1])
             name = bare_url.split('/')[-1]
 
-            _, domain = get_protocol_domain(image_url)
-            if domain == self.current_domain:
-                abs_path = self.current_abs_dir
+            # _, domain = get_protocol_domain(image_url)
+            _base_link = get_base_link(image_url)
+
+            # if domain == self.current_domain:
+            #     abs_path = self.current_abs_dir
+            # else:
+            #     # base_link不同时
+            #     abs_path = os.path.join(self.BASE_DIR, _base_link)
+            if not _base_link == self.base_link:
+                abs_path = os.path.join(self.BASE_DIR,
+                                        get_base_link(image_url, protocol=False))
+                if not os.path.exists(abs_path):
+                    os.makedirs(abs_path)
             else:
-                # base_link不同时
-                _base_link = get_base_link(image_url, protocol=False)
-                abs_path = os.path.join(self.BASE_DIR, _base_link)
+                 abs_path = self.current_abs_dir
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
-            if not os.path.exists(abs_path):
-                os.makedirs(abs_path)
-
             if '?' in name and '=' in name:
                 # 带参数图片地址处理
                 if self.IMAGE_TYPES:
@@ -261,13 +267,13 @@ class ImageSpider(object):
         if self.MAX_COUNTS and self.current_counts >= self.MAX_COUNTS:
             exit('已抓够%d张图片，自动退出。' % self.current_counts)
 
-    def _remove_non_local_site_links(self, links):
-        """移除非本站链接"""
-        # result = list()
-        for link in links:
-            if self.current_domain not in link:
-                links.remove(link)
-        return links
+    # def _remove_non_local_site_links(self, links):
+    #     """移除非本站链接"""
+    #     # result = list()
+    #     for link in links:
+    #         if self.current_domain not in link:
+    #             links.remove(link)
+    #     return links
 
     def _to_abs_url(self, url):
         """把任意URL转为绝对路径"""
@@ -292,13 +298,19 @@ class ImageSpider(object):
         links = list(set(links))
         # filter visited links
         for link in links:
+            # 首先移除该链接（可能为相对路径，或非同域名）
             links.remove(link)
+            _, _domain = get_protocol_domain(link)
+            if self.LOCAL_SITE and not self.current_domain == _domain:
+                # 非同域名且local_site为True，不进行任何处理
+                continue
             if link not in self.cached_urls:
-                # 转为绝对路径
+                # 转为绝对路径，添加cache
                 links.append(self._to_abs_url(link))
-        if self.LOCAL_SITE:
-            # filter non local links
-            links = self._remove_non_local_site_links(links)
+        #
+        # if self.LOCAL_SITE:
+        #     # filter non local links
+        #     links = self._remove_non_local_site_links(links)
 
         return links
 

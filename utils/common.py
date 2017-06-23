@@ -50,7 +50,7 @@ def add_protocol(sites, protocol):
 
 
 def get_base_link(site, protocol=True):
-    """http://www.abc.com/hello.html的base_link为www.abc.com"""
+    """http://s1.image.abc.com/hello.html的base_link为s1.image.abc.com"""
     pat = r'(http[s]?://[^/]+)/?' if protocol else r'http[s]?://([^/]+)/?'
     res = re.findall(pat, site)
     if not res:
@@ -63,11 +63,11 @@ def get_base_link(site, protocol=True):
         else:
             return _base_link
     except Exception:
-        raise _base_link
+        return _base_link
 
 
 def get_protocol_domain(link):
-    """包含子域名部分，比如image.baidu.com"""
+    """不包含子域名部分"""
     assert isinstance(link, (str, unicode))
     if link.startswith('https'):
         site_link = link.replace(r'https://', '')
@@ -76,11 +76,11 @@ def get_protocol_domain(link):
         site_link = link.replace(r'http://', '')
         protocol = 'http'
 
-    domain = site_link.split('/')[0]
-    if '.' not in domain:
+    site_url = site_link.split('/')[0]
+    if '.' not in site_url:
         raise InvalidDomain(InvalidDomain.msg)
 
-    # domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
+    domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
     return protocol, domain
 
 
