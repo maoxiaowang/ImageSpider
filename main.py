@@ -259,7 +259,7 @@ class ImageSpider(object):
                                        os.path.join(img_path, img_name), None)
                 except Exception:
                     _timer += 1
-                    _ = '%s %s 保存图片失败%d次' % (LOG.date_str, _timer , img_url)
+                    _ = '%s %s 保存图片失败%d次' % (LOG.date_str, img_url, _timer)
                     mprint(_)
                     LOG.write(_, self.OP_LOG)
                     if _timer >= 3:
