@@ -53,3 +53,7 @@ class SettingsError(Exception):
 
 class InvalidDomain(Exception):
     msg = 'The domain is invalid.'
+
+
+class PackageNotInstalled(Exception):
+    pass

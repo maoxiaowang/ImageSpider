@@ -16,6 +16,7 @@ SETTINGS_IMAGE_TYPE = 'image_types'
 SETTINGS_BASE_DIR = 'base_dir'
 SETTINGS_LOCAL_SITE = 'local_site'
 SETTINGS_CLEAR_CACHE = 'clear_cache'
+SETTINGS_WEBKIT_MODE = 'webkit_mode'
 
 COMMON_IMAGE_TYPES = ['jpg', 'jpeg', 'gif', 'png', 'bmp']
 

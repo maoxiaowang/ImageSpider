@@ -7,7 +7,11 @@ import os
 import platform
 import urllib
 from utils import *
-
+try:
+    import spynner
+    spynner = True
+except ImportError:
+    spynner = False
 if get_py_version() == 2:
     import urllib2
 else:
@@ -32,6 +36,7 @@ class ImageSpider(object):
         self.current_base_link = str()
         self.current_abs_dir = str()
         self.current_protocol = 'http'
+        self.current_depth = 1
         self.URL_CACHE = str()
         self.IMG_CACHE = str()
         self.MAIN_LOG = str()
@@ -82,7 +87,7 @@ class ImageSpider(object):
         self.CLEAR_CACHE = self.SETTINGS.get(SETTINGS_CLEAR_CACHE)
         if not isinstance(self.CLEAR_CACHE, bool):
             self.CLEAR_CACHE = False
-
+        self.WEBKIT_MODE = self.SETTINGS.get(SETTINGS_WEBKIT_MODE)
         self.CONFIG_NAMES = ((SETTINGS_SITES, self.SITES),
                              (SETTINGS_INTERVAL, self.INTERVAL),
                              (SETTINGS_MAX_COUNTS, self.MAX_COUNTS),
@@ -108,12 +113,6 @@ class ImageSpider(object):
         """
         if headers:
             self.headers = headers
-            # assert (isinstance(headers, dict),
-            #         'parameter headers must be a dictionary')
-            # self.headers = headers
-        # if clear_cache:
-        #     LOG.clear_cache(self.URL_CACHE)
-        #     LOG.clear_cache(self.IMG_CACHE)
         if base_dir:
             self.BASE_DIR = base_dir
         self.LOCAL_SITE = local_site
@@ -129,26 +128,43 @@ class ImageSpider(object):
                                                   'integer larger than 0')
         timer = 1
         while True:
-            try:
-                request = urllib2.Request(des.strip(), headers=self.headers)
-                response = urllib2.urlopen(request)
-                content = response.read()
-                response.close()
-                return content
-            except urllib2.HTTPError as e:
-                _ = '%s 打开链接出错：%s' % (LOG.date_str, e.code)
-                mprint(_)
-                LOG.write(_, self.OP_LOG)
-                time.sleep(5)
-                timer += 1
-            except urllib2.URLError as e:
-                _ = '%s 连接服务器出错：%s' % (LOG.date_str, e.reason)
-                mprint(_)
-                LOG.write(_, self.OP_LOG)
-                time.sleep(5)
-                timer += 1
-            except Exception:
-                raise
+            if not self.WEBKIT_MODE:
+                try:
+                    request = urllib2.Request(des.strip(), headers=self.headers)
+                    response = urllib2.urlopen(request)
+                    content = response.read()
+                    response.close()
+                    return content
+                except urllib2.HTTPError as e:
+                    _ = '%s 打开链接出错：%s' % (LOG.date_str, e.code)
+                    mprint(_)
+                    LOG.write(_, self.OP_LOG)
+                    time.sleep(5)
+                    timer += 1
+                except urllib2.URLError as e:
+                    _ = '%s 连接服务器出错：%s' % (LOG.date_str, e.reason)
+                    mprint(_)
+                    LOG.write(_, self.OP_LOG)
+                    time.sleep(5)
+                    timer += 1
+                except Exception:
+                    raise
+
+            else:
+                if not spynner:
+                    raise PackageNotInstalled('Synner')
+                try:
+                    browser = spynner.Browser()
+                    browser.hide()
+                    browser.load(des, self.headers)
+                    html_content = browser.html.encode('utf-8')
+                    return html_content
+                except Exception as e:
+                    _ = '%s 读取页面出错(webkit)：%s' % (LOG.date_str, str(e))
+                    mprint(_)
+                    LOG.write(_, self.OP_LOG)
+                    time.sleep(5)
+                    timer += 1
             if timer >= times:
                 _ = '%s 读取链接失败已经%d次，%s' % (LOG.date_str, timer, des)
                 mprint(_)
@@ -247,7 +263,8 @@ class ImageSpider(object):
             _timer = 0
             while True:
                 try:
-                    connection = urllib2.build_opener().open(urllib2.Request(img_url))
+                    connection = urllib2.build_opener().open(
+                        urllib2.Request(img_url))
                     _len = int(connection.headers.dict['content-length'])
                     if self.MAX_LENGTH and _len > self.MAX_LENGTH:
                         return
@@ -278,20 +295,11 @@ class ImageSpider(object):
         if self.MAX_COUNTS and self.current_counts >= self.MAX_COUNTS:
             exit('已抓够%d张图片，自动退出。' % self.current_counts)
 
-    # def _remove_non_local_site_links(self, links):
-    #     """移除非本站链接"""
-    #     # result = list()
-    #     for link in links:
-    #         if self.current_domain not in link:
-    #             links.remove(link)
-    #     return links
-
     def _to_abs_url(self, url):
         """把任意URL转为绝对路径"""
         if not url.startswith('http'):
             if url.startswith(r'//'):
-                url = '%s://%s/%s' % (self.current_protocol,
-                                      self.current_base_link, url.lstrip(r'//'))
+                url = '%s://%s' % (self.current_protocol, url.lstrip(r'//'))
             elif url.startswith(r'/'):
                 url = '%s://%s/%s' % (self.current_protocol,
                                       self.current_base_link, url.lstrip(r'/'))
@@ -334,6 +342,7 @@ class ImageSpider(object):
     def _process_links(self, links):
         """
         链接处理
+        {'url':'xxx', 'depth':1, ''}
         :param links: abs links
         :return:
         """
@@ -356,6 +365,7 @@ class ImageSpider(object):
 
             to_do_links.extend(self.get_links(link))
 
+        self.current_depth += 1
         # 拿到页面所有链接，递归
         self._process_links(to_do_links)
 

@@ -179,7 +179,13 @@ class ConfigParser(object):
                 lines = f.readlines()
                 for line in lines:
                     if line and not line.startswith('#') and '=' in line:
-                        name, value = line.split('=')
+                        l = line.split('=')
+                        if len(l) == 2:
+                            name, value = l
+                        elif len(l) > 2:
+                            name, value = l[0], '='.join(l[1:])
+                        else:
+                            raise LoadSettingsFileFailed
                         name, value = name.strip(), value.strip()
                         self._settings[name] = self._trans(value)
         except Exception:
