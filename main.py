@@ -457,7 +457,7 @@ class ImageSpider(object):
                 except Exception as e:
                     if isinstance(e, WARN_EXCEPTIONS):
                         LOG.write(str(e), self.OP_LOG)
-                        raise
+                        continue
                     elif isinstance(e, FATAL_EXCEPTIONS):
                         LOG.write(str(e), self.OP_LOG)
                         raise
