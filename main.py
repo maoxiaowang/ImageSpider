@@ -9,9 +9,8 @@ import urllib
 from utils import *
 try:
     import spynner
-    spynner = True
 except ImportError:
-    spynner = False
+    spynner = None
 if get_py_version() == 2:
     import urllib2
 else:
