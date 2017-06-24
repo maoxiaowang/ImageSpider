@@ -352,8 +352,6 @@ class ImageSpider(object):
         for link in links:
             # 首先更新当前页面的base_url
             self.current_base_link = get_base_link(link, protocol=False)
-            mprint('%s %s loading...' % (LOG.date_str, link))
-
             if link in self.cached_urls:
                 # ignore cached links
                 continue
@@ -362,6 +360,7 @@ class ImageSpider(object):
                 LOG.cache(link, self.URL_CACHE)
 
             # download images on this link one by one
+            mprint('%s %s loading...' % (LOG.date_str, link))
             self.download_images(link)
 
             # all links in next depth
