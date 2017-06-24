@@ -4,8 +4,12 @@ from utils.exceptions import *
 MAIN_LOG = 'main.log'
 URL_CACHE = 'url_cache'
 IMG_CACHE = 'img_cache'
+TO_DO_URL_CACHE = 'to_do_url_cache'
+ALL_CACHE = (URL_CACHE, IMG_CACHE, TO_DO_URL_CACHE)
 OP_LOG = 'op.log'
 SETTINGS_CONF = 'settings.conf'
+
+NEW_LINE = '\n'
 
 SETTINGS_SITES = 'sites'
 SETTINGS_INTERVAL = 'interval'
@@ -46,3 +50,6 @@ FATAL_EXCEPTIONS = (UnknownPythonVersion,
                     InitializeFailed,
                     SettingsError,
                     LoadSettingsFileFailed)
+
+SPYNNER_WARNING = ('Make sure Spynner is already installed, '
+                   'or you can turn off webkit_mode in settings.conf.')

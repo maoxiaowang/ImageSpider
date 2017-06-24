@@ -40,6 +40,7 @@ class ImageSpider(object):
         self.IMG_CACHE = str()
         self.MAIN_LOG = str()
         self.OP_LOG = str()
+        self.LAST_CACHED_URL = str()
 
         self.SETTINGS = ConfigParser().settings
         self.SITES = self.SETTINGS.get(SETTINGS_SITES)
@@ -151,7 +152,7 @@ class ImageSpider(object):
 
             else:
                 if not spynner:
-                    raise PackageNotInstalled('Synner')
+                    raise PackageNotInstalled(SPYNNER_WARNING)
                 try:
                     browser = spynner.Browser()
                     browser.hide()
@@ -345,28 +346,41 @@ class ImageSpider(object):
         :param links: abs links
         :return:
         """
+        # mprint('当前页面深度：%d' % self.current_depth)
+        # next depth links list
         to_do_links = list()
         for link in links:
             # 首先更新当前页面的base_url
             self.current_base_link = get_base_link(link, protocol=False)
             mprint('%s %s loading...' % (LOG.date_str, link))
 
-            # first, download images on this link one by one
-            self.download_images(link)
-
-            # 缓存地址
-            if link not in self.cached_urls:
-                self.cached_urls.append(link)
-                LOG.write(link, self.URL_CACHE)
-            else:
+            if link in self.cached_urls:
                 # ignore cached links
                 continue
+            else:
+                self.cached_urls.append(link)
+                LOG.cache(link, self.URL_CACHE)
 
+            # download images on this link one by one
+            self.download_images(link)
+
+            # all links in next depth
             to_do_links.extend(self.get_links(link))
 
         self.current_depth += 1
         # 拿到页面所有链接，递归
-        self._process_links(to_do_links)
+        if to_do_links:
+            # 先清空当前深度cache
+            LOG.clear_cache(self.TO_DO_URL_CACHE)
+            # 将下一个深度的所有url写入到cache
+            LOG.cache(NEW_LINE.join(to_do_links), self.TO_DO_URL_CACHE)
+            self._process_links(to_do_links)
+        else:
+            _ = '没有更多的图片了，共保存%d张图片，bye~' % self.current_counts
+            for item in ALL_CACHE:
+                LOG.clear_cache(item)
+            mprint(_)
+            LOG.write(_, self.MAIN_LOG)
 
     def _initialize(self, site):
         try:
@@ -383,6 +397,10 @@ class ImageSpider(object):
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)
             self.OP_LOG = os.path.join(self.current_abs_dir, OP_LOG)
+            self.TO_DO_URL_CACHE = os.path.join(self.current_abs_dir,
+                                                TO_DO_URL_CACHE)
+            # self.LAST_CACHED_URL = LOG.get_last_cache(self.URL_CACHE)
+
         except Exception:
             raise InitializeFailed
 
@@ -424,11 +442,16 @@ class ImageSpider(object):
             for site in self.SITES:
                 try:
                     self._initialize(site)
+                    do_to_links = LOG.load_cache(self.TO_DO_URL_CACHE)
+                    if do_to_links:
+                        site = do_to_links
                     # get images from it and all it's sub urls
-                    self._process_links([site])
+                    self._process_links(try_iter(site))
 
                 except KeyboardInterrupt:
-                    mprint('本次共保存%d张图片, bye~' % self.current_counts)
+                    _ = '共保存%d张图片, bye~' % self.current_counts
+                    mprint(_)
+                    LOG.write(_, self.MAIN_LOG)
                     condition = False
                     break
                 except Exception as e:

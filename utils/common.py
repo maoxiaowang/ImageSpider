@@ -119,7 +119,7 @@ def replace_html_symbol(content):
 
 class Log(object):
     def __init__(self):
-        self.NEW_LINE = '\n'
+        pass
 
     @property
     def date_str(self):
@@ -127,7 +127,7 @@ class Log(object):
 
     def write(self, content, log_file_path):
         with open(log_file_path, mode='a+') as f:
-            f.write('%s %s%s' % (self.date_str, content, self.NEW_LINE))
+            f.write('%s %s%s' % (self.date_str, content, NEW_LINE))
 
     def cache(self, content, cache_file_path):
         cached = False
@@ -138,7 +138,7 @@ class Log(object):
                     cached = True
                     break
             if not cached:
-                f.write(content + self.NEW_LINE)
+                f.write(content + NEW_LINE)
 
     @staticmethod
     def is_cached(url, cache_file_path):
@@ -168,6 +168,18 @@ class Log(object):
                 f.write('')
         except Exception:
             raise ClearCacheFailed
+
+    @staticmethod
+    def get_last_cache(cache_file_path):
+        try:
+            with open(cache_file_path, mode='a+') as f:
+                lines = f.readlines()
+                lines.reverse()
+                for line in lines:
+                    if line.strip():
+                        return line.strip()
+        except Exception as e:
+            raise LoadCacheFailed
 
 
 class ConfigParser(object):
