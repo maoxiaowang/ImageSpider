@@ -56,13 +56,10 @@ def get_base_link(site, protocol=True):
     if not res:
         raise GetBaseLinkFailed
     _base_link = res[0]
-    try:
-        if not protocol and ':' in _base_link:
-            # 有端口的情况
-            return _base_link.split(':')[0]
-        else:
-            return _base_link
-    except Exception:
+    if not protocol and ':' in _base_link:
+        # 有端口的情况
+        return _base_link.split(':')[0]
+    else:
         return _base_link
 
 
@@ -82,9 +79,14 @@ def get_protocol_domain(link):
 
     site_url = site_link.split('/')[0]
     if '.' not in site_url:
-        raise InvalidDomain(InvalidDomain.msg)
+        raise InvalidDomain
 
-    domain = '.'.join((site_url.split('.')[-2], site_url.split('.')[-1]))
+    double_suffix = ('com', 'net', 'gov', 'org', 'edu', 'top')
+    domain = '.'.join((site_url.split('.')[-2:]))
+    for item in double_suffix:
+        # 分为两部分的域名后缀，如com.cn
+        if re.match(r'^%s\.[a-z]{2}$' % item, domain):
+            domain = '.'.join((site_url.split('.')[-3:]))
     return protocol, domain
 
 
@@ -129,7 +131,8 @@ class Log(object):
         with open(log_file_path, mode='a+') as f:
             f.write('%s %s%s' % (self.date_str, content, NEW_LINE))
 
-    def cache(self, content, cache_file_path):
+    @staticmethod
+    def cache(content, cache_file_path):
         cached = False
         with open(cache_file_path, mode='a+') as f:
             lines = f.readlines()
@@ -178,7 +181,7 @@ class Log(object):
                 for line in lines:
                     if line.strip():
                         return line.strip()
-        except Exception as e:
+        except Exception:
             raise LoadCacheFailed
 
 
