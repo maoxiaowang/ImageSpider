@@ -225,8 +225,17 @@ class ImageSpider(object):
             if image_url.startswith('http'):
                 for item in (r'http://', r'https://'):
                     bare_url = bare_url.replace(item, '')
-            path = '/'.join(bare_url.split('/')[1:-1])
-            name = bare_url.split('/')[-1]
+
+            split_list = []
+            for item in bare_url.split('/')[1:]:
+                if '?' not in item:
+                    split_list.append(item)
+                else:
+                    # 带参数地址处理，遇到问号停止
+                    split_list.append(item.split('?')[0])
+                    break
+            path = '/'.join(split_list[:-1])
+            name = split_list[-1]
 
             _base_link = get_base_link(image_url)
 
@@ -239,19 +248,19 @@ class ImageSpider(object):
                 abs_path = self.current_abs_dir
             for i, p in enumerate(path.split('/')):
                 abs_path = os.path.join(abs_path, p)
-            if '?' in name and '=' in name:
-                # 带参数图片地址处理
-                if self.IMAGE_TYPES:
-                    _pat = r'^(.*?\.(%s))\?\w+\=.*$' % '|'.join(self.IMAGE_TYPES)
-                    res = re.findall(_pat, name, re.I)
-                    if res:
-                        name = res[0][0]
-                else:
-                    res = re.findall(r'^(.*?)\?\w+=.*$', name)
-                    if res:
-                        name = res[0]
-                if not res:
-                    raise InvalidImageFileName
+            # if '?' in name and '=' in name:
+            #     # 带参数图片地址处理
+            #     if self.IMAGE_TYPES:
+            #         _pat = r'^(.*?\.(%s))\?\w+\=.*$' % '|'.join(self.IMAGE_TYPES)
+            #         res = re.findall(_pat, name, re.I)
+            #         if res:
+            #             name = res[0][0]
+            #     else:
+            #         res = re.findall(r'^(.*?)\?\w+=.*$', name)
+            #         if res:
+            #             name = res[0]
+            #     if not res:
+            #         raise InvalidImageFileName
 
         except Exception:
             raise
