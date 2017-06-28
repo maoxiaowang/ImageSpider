@@ -274,10 +274,16 @@ class ImageSpider(object):
                 try:
                     connection = urllib2.build_opener().open(
                         urllib2.Request(img_url))
-                    _len = int(connection.headers.dict['content-length'])
-                    if self.MAX_LENGTH and _len > self.MAX_LENGTH:
+                    _len = connection.headers.dict.get('content-length')
+                    try:
+                        _len = int(_len)
+                    except ValueError:
+                        pass
+                    except TypeError:
+                        pass
+                    if _len and self.MAX_LENGTH and _len > self.MAX_LENGTH:
                         return
-                    if self.MIN_LENGTH and _len < self.MIN_LENGTH:
+                    if _len and self.MIN_LENGTH and _len < self.MIN_LENGTH:
                         return
                     if not os.path.exists(img_path):
                         os.makedirs(img_path)
@@ -359,21 +365,22 @@ class ImageSpider(object):
         # next depth links list
         to_do_links = list()
         for link in links:
-            # 首先更新当前页面的base_url
+            # 更新当前页面的base_url
             self.current_base_link = get_base_link(link, protocol=False)
+
             if link in self.cached_urls:
                 # ignore cached links
                 continue
             else:
-                self.cached_urls.append(link)
-                LOG.cache(link, self.URL_CACHE)
+                # all links in next depth
+                to_do_links.extend(self.get_links(link))
 
             # download images on this link one by one
             mprint('%s %s loading...' % (LOG.date_str, link))
             self.download_images(link)
-
-            # all links in next depth
-            to_do_links.extend(self.get_links(link))
+            # cached the URL when images download is done
+            self.cached_urls.append(link)
+            LOG.cache(link, self.URL_CACHE)
 
         self.current_depth += 1
         # 拿到页面所有链接，递归
@@ -389,6 +396,7 @@ class ImageSpider(object):
                 LOG.clear_cache(item)
             mprint(_)
             LOG.write(_, self.MAIN_LOG)
+            return
 
     def _initialize(self, site):
         try:
