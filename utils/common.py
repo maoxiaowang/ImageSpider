@@ -62,6 +62,17 @@ def get_base_link(site, protocol=True):
     else:
         return _base_link
 
+def getHostnameOfUrl(url):
+    # (?xi)\A
+    # [a - z][a - z0 - 9 +\-.] *: //  # Scheme
+    # ([a - z0 - 9\-._
+    # ~ %!$ & '()*+,;=]+@)?           # User
+    # ([a - z0 - 9\-._
+    # ~ %]+                           # Named or IPv4 host
+    # | \[[a - z0 - 9\-._
+    # ~ %!$ & '()*+,;=:]+\])          # IPv6+ host
+    reobj = re.compile(r"(?xi)\A[a-z][a-z0-9+\-.]*://([a-z0-9\-._~%!$&'()*+,;=]+@)?([a-z0-9\-._~%]+|[a−z0−9\-.])")
+    return reobj.search(url).group(2)
 
 def get_protocol_domain(link):
     """
