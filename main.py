@@ -73,14 +73,18 @@ class ImageSpider(object):
         self.BASE_DIR = self.SETTINGS.get(SETTINGS_BASE_DIR)
         if not self.BASE_DIR:
             plat = platform.platform().lower()
-            if 'windows' in plat:
+            if 'windows' in plat:  # windows
                 self.BASE_DIR = r'C:\\'
-            elif 'linux' in plat:
-                self.BASE_DIR = r'/home'
+            elif 'darwin' in plat or 'linux' in plat:  # unix-like
+                # the same following 2 methods.
+                # print os.path.expandvars('$HOME')
+                # print os.path.expanduser('~、')
+                self.BASE_DIR = os.path.join(os.environ['HOME'],CRAWLER_DATA_PATH)
             else:
                 # unknown os
                 self.BASE_DIR = str(input('未知操作系统，'
                                           '请手动输入保存文件的根路径：'))
+
         self.LOCAL_SITE = self.SETTINGS.get(SETTINGS_LOCAL_SITE)
         if not isinstance(self.LOCAL_SITE, bool):
             self.LOCAL_SITE = True
@@ -405,14 +409,20 @@ class ImageSpider(object):
                                                           (link=site))
             self.base_link = get_base_link(site)
             self.base_link_without_protocol = get_base_link(site, protocol=False)
+
             self.current_abs_dir = os.path.join(self.BASE_DIR,
-                                                self.base_link_without_protocol)
+                                                self.base_link_without_protocol.replace('.','_'))
+            print 'cur abs dir',self.current_abs_dir
+
             if not os.path.exists(self.current_abs_dir):
                 os.makedirs(self.current_abs_dir)
+
             self.URL_CACHE = os.path.join(self.current_abs_dir, URL_CACHE)
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)
+            print 'config OP_LOG', OP_LOG
             self.OP_LOG = os.path.join(self.current_abs_dir, OP_LOG)
+            print 'init self.OP_LOG', self.OP_LOG
             self.TO_DO_URL_CACHE = os.path.join(self.current_abs_dir,
                                                 TO_DO_URL_CACHE)
             # self.LAST_CACHED_URL = LOG.get_last_cache(self.URL_CACHE)

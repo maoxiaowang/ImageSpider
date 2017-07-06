@@ -1,6 +1,7 @@
 # coding=utf-8
 from utils.exceptions import *
 
+CRAWLER_DATA_PATH = 'ImageSpider'   # 包名辨识
 MAIN_LOG = 'main.log'
 URL_CACHE = 'url_cache'
 IMG_CACHE = 'img_cache'
@@ -18,7 +19,7 @@ SETTINGS_MAX_LENGTH = 'max_length'
 SETTINGS_MIN_LENGTH = 'min_length'
 SETTINGS_IMAGE_TYPE = 'image_types'
 SETTINGS_BASE_DIR = 'base_dir'
-SETTINGS_LOCAL_SITE = 'local_site'
+SETTINGS_LOCAL_SITE = 'is_local_site'
 SETTINGS_CLEAR_CACHE = 'clear_cache'
 SETTINGS_WEBKIT_MODE = 'webkit_mode'
 
