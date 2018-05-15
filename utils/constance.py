@@ -40,10 +40,12 @@ TIP_END = '-------------END------------'
 
 DEFAULT_HEADER = {
     'Connection': 'Keep-Alive',
-    'Accept': 'text/html, application/xhtml+xml, */*',
+    'Upgrade-Insecure-Requests': '1',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.8,zh-Hans-CN;q=0.5,zh-Hans;q=0.3',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; '
-                  'WOW64; Trident/7.0; rv:11.0) like Gecko'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/48.0.2564.116 Safari/537.36',
+    'Accept-Encoding': 'gzip, deflate',
 }
 
 DEFAULT_TIMEOUT = 30

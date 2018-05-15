@@ -27,11 +27,14 @@ class ImageSpider(object):
         self.current_abs_dir = str()
         self.current_protocol = 'http'
         self.current_depth = 1
+
         self.URL_CACHE = str()
         self.IMG_CACHE = str()
         self.MAIN_LOG = str()
         self.OP_LOG = str()
         self.LAST_CACHED_URL = str()
+
+        self.SESSION = requests.Session()
 
         self.SETTINGS = ConfigParser().settings
         self.SITES = self.SETTINGS.get(SETTINGS_SITES)
@@ -125,7 +128,9 @@ class ImageSpider(object):
         while True:
             if not self.WEBKIT_MODE:
                 try:
-                    res = requests.get(des.strip(), headers=self.headers)
+                    headers = self.headers
+                    headers['Referer'] = des.strip()
+                    res = self.SESSION.get(des.strip(), headers=self.headers)
                     return res.content
                 except requests.HTTPError as e:
                     _ = '%s 打开链接出错' % LOG.date_str
@@ -251,7 +256,7 @@ class ImageSpider(object):
             _timer = 0
             while True:
                 try:
-                    img = requests.get(img_url, stream=True, headers=self.headers)
+                    img = self.SESSION.get(img_url, stream=True, headers=self.headers, allow_redirects=False)
                     _len = img.headers.get('content-length', 0)
                     try:
                         _len = int(_len)
