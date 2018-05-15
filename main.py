@@ -5,22 +5,13 @@ Image Spider v1.0
 
 import os
 import platform
-import urllib
-from utils import *
-try:
-    import spynner
-except ImportError:
-    spynner = None
-if get_py_version() == 2:
-    import urllib2
-else:
-    raise UnsupportedPythonVersion
+import requests
+from utils.common import *
+
 
 __author__ = '丐帮'
 
 LOG = Log()
-
-__all__ = ('start', 'settings')
 
 
 class ImageSpider(object):
@@ -134,19 +125,16 @@ class ImageSpider(object):
         while True:
             if not self.WEBKIT_MODE:
                 try:
-                    request = urllib2.Request(des.strip(), headers=self.headers)
-                    response = urllib2.urlopen(request)
-                    content = response.read()
-                    response.close()
-                    return content
-                except urllib2.HTTPError as e:
-                    _ = '%s 打开链接出错：%s' % (LOG.date_str, e.code)
+                    res = requests.get(des.strip(), headers=self.headers)
+                    return res.content
+                except requests.HTTPError as e:
+                    _ = '%s 打开链接出错' % LOG.date_str
                     mprint(_)
                     LOG.write(_, self.OP_LOG)
                     time.sleep(5)
                     timer += 1
-                except urllib2.URLError as e:
-                    _ = '%s 连接服务器出错：%s' % (LOG.date_str, e.reason)
+                except requests.ConnectionError as e:
+                    _ = '%s 连接服务器出错' % LOG.date_str
                     mprint(_)
                     LOG.write(_, self.OP_LOG)
                     time.sleep(5)
@@ -155,25 +143,12 @@ class ImageSpider(object):
                     raise
 
             else:
-                if not spynner:
-                    raise PackageNotInstalled(SPYNNER_WARNING)
-                try:
-                    browser = spynner.Browser()
-                    browser.hide()
-                    browser.load(des, self.headers)
-                    html_content = browser.html.encode('utf-8')
-                    return html_content
-                except Exception as e:
-                    _ = '%s 读取页面出错(webkit)：%s' % (LOG.date_str, str(e))
-                    mprint(_)
-                    LOG.write(_, self.OP_LOG)
-                    time.sleep(5)
-                    timer += 1
-            if timer >= times:
-                _ = '%s 读取链接失败已经%d次，%s' % (LOG.date_str, timer, des)
-                mprint(_)
-                LOG.write(_, self.OP_LOG)
-                return ''
+                if not webdriver:
+                    raise PackageNotInstalled(WEBDRIVER_WARNING)
+
+                driver = get_webdriver(disable_load_image=True)
+                driver.get(des)
+                # TODO
 
     def download_images(self, url):
         """
@@ -276,9 +251,8 @@ class ImageSpider(object):
             _timer = 0
             while True:
                 try:
-                    connection = urllib2.build_opener().open(
-                        urllib2.Request(img_url))
-                    _len = connection.headers.dict.get('content-length')
+                    img = requests.get(img_url, stream=True, headers=self.headers)
+                    _len = img.headers.get('content-length', 0)
                     try:
                         _len = int(_len)
                     except ValueError:
@@ -291,9 +265,12 @@ class ImageSpider(object):
                         return
                     if not os.path.exists(img_path):
                         os.makedirs(img_path)
-                    urllib.urlretrieve(img_url,
-                                       os.path.join(img_path, img_name), None)
-                except Exception:
+                    # save image
+
+                    with open(os.path.join(img_path, img_name), 'wb') as f:
+                        for chunk in img:
+                            f.write(chunk)
+                except Exception as e:
                     _timer += 1
                     _ = '%s %s 保存图片失败%d次' % (LOG.date_str, img_url, _timer)
                     mprint(_)
@@ -412,7 +389,7 @@ class ImageSpider(object):
 
             self.current_abs_dir = os.path.join(self.BASE_DIR,
                                                 self.base_link_without_protocol.replace('.','_'))
-            print 'cur abs dir',self.current_abs_dir
+            mprint('cur abs dir',self.current_abs_dir)
 
             if not os.path.exists(self.current_abs_dir):
                 os.makedirs(self.current_abs_dir)
@@ -420,9 +397,9 @@ class ImageSpider(object):
             self.URL_CACHE = os.path.join(self.current_abs_dir, URL_CACHE)
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)
-            print 'config OP_LOG', OP_LOG
+            mprint('config OP_LOG', OP_LOG)
             self.OP_LOG = os.path.join(self.current_abs_dir, OP_LOG)
-            print 'init self.OP_LOG', self.OP_LOG
+            mprint('init self.OP_LOG', self.OP_LOG)
             self.TO_DO_URL_CACHE = os.path.join(self.current_abs_dir,
                                                 TO_DO_URL_CACHE)
             # self.LAST_CACHED_URL = LOG.get_last_cache(self.URL_CACHE)

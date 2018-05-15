@@ -1,5 +1,6 @@
 # coding=utf-8
 from utils.exceptions import *
+import sys
 
 CRAWLER_DATA_PATH = 'ImageSpider'   # 包名辨识
 MAIN_LOG = 'main.log'
@@ -11,6 +12,13 @@ OP_LOG = 'op.log'
 SETTINGS_CONF = 'settings.conf'
 
 NEW_LINE = '\n'
+
+if sys.version_info[0] == 2:
+    PY_VERSION = 2
+    STR = (str, unicode)
+else:
+    PY_VERSION = 3
+    STR = (str, )
 
 SETTINGS_SITES = 'sites'
 SETTINGS_INTERVAL = 'interval'
@@ -31,12 +39,14 @@ TIP_START = '------------START-----------'
 TIP_END = '-------------END------------'
 
 DEFAULT_HEADER = {
-            'Connection': 'Keep-Alive',
-            'Accept': 'text/html, application/xhtml+xml, */*',
-            'Accept-Language': 'en-US,en;q=0.8,zh-Hans-CN;q=0.5,zh-Hans;q=0.3',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; '
-                          'WOW64; Trident/7.0; rv:11.0) like Gecko'
+    'Connection': 'Keep-Alive',
+    'Accept': 'text/html, application/xhtml+xml, */*',
+    'Accept-Language': 'en-US,en;q=0.8,zh-Hans-CN;q=0.5,zh-Hans;q=0.3',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; '
+                  'WOW64; Trident/7.0; rv:11.0) like Gecko'
 }
+
+DEFAULT_TIMEOUT = 30
 
 WARN_EXCEPTIONS = (InvalidImageFileName,
                    ClearCacheFailed,
@@ -52,5 +62,8 @@ FATAL_EXCEPTIONS = (UnknownPythonVersion,
                     SettingsError,
                     LoadSettingsFileFailed)
 
-SPYNNER_WARNING = ('Make sure Spynner is already installed, '
-                   'or you can turn off webkit_mode in settings.conf.')
+PHANTOMJS_PATH = None
+PHANTOMJS_LOG = ''
+
+WEBDRIVER_WARNING = ('Make sure selenium is already installed, '
+                     'or you can turn off webkit_mode in settings.conf.')

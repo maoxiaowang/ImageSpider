@@ -1,22 +1,21 @@
 # coding=utf-8
 import re
-import sys
 import time
-from constance import *
-
-
-def get_py_version():
-    return sys.version_info[0]
+from utils.constance import *
+try:
+    from selenium import webdriver
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+except ImportError:
+    webdriver = None
 
 
 def mprint(string, *args):
-    ver = get_py_version()
     if args:
         for item in args:
             string += ' %s' % item
-    if ver == 2:
-        print string
-    elif ver == 3:
+    if PY_VERSION == 2:
+        print(string)
+    elif PY_VERSION == 3:
         print(string)
     else:
         raise UnknownPythonVersion
@@ -29,7 +28,7 @@ def try_iter(s):
     :return: list
     """
     res = list()
-    if type(s) in (str, unicode):
+    if type(s) in STR:
         res = [s]
     elif type(s) in (tuple, list):
         res = s
@@ -40,7 +39,7 @@ def add_protocol(sites, protocol):
     processed_sites = list()
     sites = try_iter(sites)
     for site in sites:
-        assert isinstance(site, (str, unicode))
+        assert isinstance(site, STR)
         site = site.strip(r'/')
         if not site.startswith('http'):
             processed_sites.append(r'%s://' % protocol + site)
@@ -80,7 +79,7 @@ def get_protocol_domain(link):
     :param link:
     :return:
     """
-    assert isinstance(link, (str, unicode))
+    assert isinstance(link, STR)
     if link.startswith('https'):
         site_link = link.replace(r'https://', '')
         protocol = 'https'
@@ -109,7 +108,7 @@ def get_images_from_url(url_content, base_link):
     :return: 图片绝对URL的列表
     """
     # TODO: lazyload
-    res = re.findall(r'<img.*?src="(.*?)".*?>', url_content)
+    res = re.findall(r'<img.*?src="(.*?)".*?>', str(url_content))
     res = list(set(res))
     result = list()
     for item in res:
@@ -125,9 +124,43 @@ def get_images_from_url(url_content, base_link):
 
 
 def replace_html_symbol(content):
+    content = str(content)
     for item in ('&#x2F;', '&#47;', '&#x2f;'):
-        content = content.replace(item, r'/')
+        content = content.replace(item, '/')
     return content
+
+
+def get_webdriver(set_headers=False, disable_load_image=False):
+    driver = None
+    dcap = dict(DesiredCapabilities.PHANTOMJS)
+    try:
+        if PHANTOMJS_PATH:
+            service_args = None
+            if set_headers:
+                dcap["phantomjs.page.settings.userAgent"] = (
+                    DEFAULT_HEADER)
+            if disable_load_image:
+                dcap["phantomjs.page.settings.loadImages"] = False
+            # if set_proxy:
+            #     proxy_info = {'host': PROXY_HOST, 'port': PROXY_PORT}
+            #     service_args = [
+            #         '--proxy=%(host)s:%(port)d' % proxy_info,
+            #         '--proxy-type=http',
+            #     ]
+                # proxy = webdriver.Proxy()
+                # proxy.proxy_type = ProxyType.MANUAL
+                # proxy.http_proxy = random.choice(ips)
+                # proxy.add_to_capabilities(dcap)
+            driver = webdriver.PhantomJS(PHANTOMJS_PATH,
+                                         desired_capabilities=dcap,
+                                         service_log_path=PHANTOMJS_LOG,
+                                         service_args=service_args)
+            driver.set_page_load_timeout(DEFAULT_TIMEOUT)
+
+    except Exception as e:
+        raise e
+    else:
+        return driver
 
 
 class Log(object):
@@ -201,7 +234,7 @@ class ConfigParser(object):
     def __init__(self):
         self._settings = dict()
         try:
-            with open(SETTINGS_CONF) as f:
+            with open(SETTINGS_CONF, encoding='utf-8') as f:
                 lines = f.readlines()
                 for line in lines:
                     if line and not line.startswith('#') and '=' in line:
@@ -214,7 +247,7 @@ class ConfigParser(object):
                             raise LoadSettingsFileFailed
                         name, value = name.strip(), value.strip()
                         self._settings[name] = self._trans(value)
-        except Exception:
+        except Exception as e:
             raise LoadSettingsFileFailed
 
     @staticmethod

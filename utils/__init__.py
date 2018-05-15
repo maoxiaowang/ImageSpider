@@ -1,5 +1,5 @@
 # coding: utf=8
 
-from common import *
-from constance import *
+from utils.common import *
+from utils.constance import *
 from utils.exceptions import *
