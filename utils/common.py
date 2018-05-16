@@ -234,19 +234,36 @@ class ConfigParser(object):
     def __init__(self):
         self._settings = dict()
         try:
-            with open(SETTINGS_CONF, encoding='utf-8') as f:
-                lines = f.readlines()
-                for line in lines:
-                    if line and not line.startswith('#') and '=' in line:
-                        l = line.split('=')
-                        if len(l) == 2:
-                            name, value = l
-                        elif len(l) > 2:
-                            name, value = l[0], '='.join(l[1:])
-                        else:
-                            raise LoadSettingsFileFailed
-                        name, value = name.strip(), value.strip()
-                        self._settings[name] = self._trans(value)
+            if PY_VERSION == 2:
+                with open(SETTINGS_CONF) as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        if line and not line.startswith('#') and '=' in line:
+                            l = line.split('=')
+                            if len(l) == 2:
+                                name, value = l
+                            elif len(l) > 2:
+                                name, value = l[0], '='.join(l[1:])
+                            else:
+                                raise LoadSettingsFileFailed
+                            name, value = name.strip(), value.strip()
+                            self._settings[name] = self._trans(value)
+            elif PY_VERSION == 3:
+                with open(SETTINGS_CONF, encoding='utf-8') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        if line and not line.startswith('#') and '=' in line:
+                            l = line.split('=')
+                            if len(l) == 2:
+                                name, value = l
+                            elif len(l) > 2:
+                                name, value = l[0], '='.join(l[1:])
+                            else:
+                                raise LoadSettingsFileFailed
+                            name, value = name.strip(), value.strip()
+                            self._settings[name] = self._trans(value)
+            else:
+                raise LoadSettingsFileFailed
         except Exception as e:
             raise LoadSettingsFileFailed
 

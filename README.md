@@ -1,13 +1,7 @@
 # ImageSpider
 
-爬取任意网站所有图片，支持断线续传
-
-环境：Python2
-
-使用方法：
-1. 修改settings.conf文件，至少需要填写sites项。
-2. python run.py
-
+## Description
+ - Fetch all images from designated website.
 
 ## Pre-requisites
 ### OS
@@ -16,7 +10,13 @@
 - OS X
 
 ### Python
-- 2.7.*
-
+- Python 2.x
+- Python 3.x
 
 ### Third-Party Library
+- selenium (optional)
+
+
+## Usage：
+1. Configure settings.conf, at least set "sites" option。
+2. python run.py
