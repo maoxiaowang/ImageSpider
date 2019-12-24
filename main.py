@@ -394,7 +394,6 @@ class ImageSpider(object):
 
             self.current_abs_dir = os.path.join(self.BASE_DIR,
                                                 self.base_link_without_protocol.replace('.','_'))
-            mprint('cur abs dir',self.current_abs_dir)
 
             if not os.path.exists(self.current_abs_dir):
                 os.makedirs(self.current_abs_dir)
@@ -402,9 +401,8 @@ class ImageSpider(object):
             self.URL_CACHE = os.path.join(self.current_abs_dir, URL_CACHE)
             self.IMG_CACHE = os.path.join(self.current_abs_dir, IMG_CACHE)
             self.MAIN_LOG = os.path.join(self.current_abs_dir, MAIN_LOG)
-            mprint('config OP_LOG', OP_LOG)
             self.OP_LOG = os.path.join(self.current_abs_dir, OP_LOG)
-            mprint('init self.OP_LOG', self.OP_LOG)
+            mprint('init log', self.OP_LOG)
             self.TO_DO_URL_CACHE = os.path.join(self.current_abs_dir,
                                                 TO_DO_URL_CACHE)
             # self.LAST_CACHED_URL = LOG.get_last_cache(self.URL_CACHE)
